@@ -1,0 +1,6 @@
+{
+  "name": "TargetFlow",
+  "description": "Aplikasi jurnal harian target dan kegiatan kerja dengan enkripsi awan, sinkronisasi antar perangkat, pengingat harian, dan ekspor Word resmi.",
+  "requestFramePermissions": ["notifications"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
