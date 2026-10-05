@@ -70,26 +70,21 @@ export const OfficialReportView: React.FC<OfficialReportViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Action & Export Bar */}
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4 print:hidden">
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3.5 print:hidden">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <FileCheck className="w-5 h-5 text-sky-600 dark:text-sky-400" />
-              <span>Format Laporan Resmi Sesuai Standar Sekolah</span>
-            </h2>
-          </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Format kop surat, tabel 4 kolom, dan tanda tangan digital persis dokumen dinas SMA Negeri 1 Tejakula
-          </p>
+          <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <FileCheck className="w-5 h-5 text-sky-600 dark:text-sky-400 shrink-0" />
+            <span>Format Laporan Resmi Sesuai Standar Sekolah</span>
+          </h2>
         </div>
 
-        {/* Buttons */}
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        {/* Buttons (touch-friendly on mobile) */}
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           {/* Filter Period */}
           <select
             value={filterPeriod}
             onChange={(e) => setFilterPeriod(e.target.value as any)}
-            className="text-xs px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-200 focus:outline-hidden"
+            className="min-h-[44px] flex-1 sm:flex-none text-xs px-3 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-200 focus:outline-hidden"
           >
             <option value="all">Semua Tanggal ({entries.length} data)</option>
             <option value="october">Bulan Oktober 2026</option>
@@ -99,28 +94,28 @@ export const OfficialReportView: React.FC<OfficialReportViewProps> = ({
           {/* Edit Kop & Signer */}
           <button
             onClick={onOpenSettings}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors cursor-pointer"
+            className="min-h-[44px] px-3 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors cursor-pointer"
             title="Ubah Kop Surat, Nama Kepala Sekolah, NIP"
           >
             <Settings className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Edit Kop / NIP</span>
+            <span>Kop / NIP</span>
           </button>
 
           {/* Cetak / PDF */}
           <button
             onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors cursor-pointer"
+            className="min-h-[44px] px-3 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors cursor-pointer"
             title="Cetak langsung atau simpan sebagai PDF"
           >
             <Printer className="w-3.5 h-3.5" />
-            <span>Cetak / PDF</span>
+            <span>Cetak</span>
           </button>
 
           {/* Primary Word (.docx) Export Button */}
           <button
             onClick={handleExportWord}
             disabled={isExporting}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-sm transition-all cursor-pointer"
+            className="min-h-[44px] w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-sm transition-all cursor-pointer"
             title="Unduh laporan dalam format Microsoft Word resmi (.docx)"
           >
             <Download className={`w-4 h-4 ${isExporting ? 'animate-bounce' : ''}`} />
@@ -129,8 +124,9 @@ export const OfficialReportView: React.FC<OfficialReportViewProps> = ({
         </div>
       </div>
 
-      {/* Official Document Sheet Preview (Matches user's image exactly) */}
-      <div className="bg-white text-black p-6 sm:p-12 rounded-2xl shadow-md border border-slate-300 max-w-4xl mx-auto font-serif print:p-0 print:border-none print:shadow-none print:max-w-none">
+      {/* Official Document Sheet Preview (Contained in horizontal scroll area for mobile) */}
+      <div className="overflow-x-auto w-full pb-4">
+        <div className="min-w-[650px] sm:min-w-0 bg-white text-black p-6 sm:p-12 rounded-2xl shadow-md border border-slate-300 max-w-4xl mx-auto font-serif print:p-0 print:border-none print:shadow-none print:max-w-none print:min-w-0">
         {/* 1. KOP SURAT (Letterhead) */}
         <div className="relative pb-2 border-b-[3px] border-black mb-1">
           {/* Dual Logos (Bali Province left, School Logo right) */}
@@ -322,5 +318,6 @@ export const OfficialReportView: React.FC<OfficialReportViewProps> = ({
         </div>
       </div>
     </div>
+  </div>
   );
 };

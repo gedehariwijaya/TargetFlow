@@ -49,6 +49,10 @@ export interface SyncConfig {
   syncStatus: 'idle' | 'syncing' | 'synced' | 'error' | 'offline';
   errorMessage?: string;
   deviceId: string;
+  connectedDevices?: number;
+  realtimeStatus?: 'connected' | 'connecting' | 'disconnected';
+  userEmail?: string;
+  lastSyncSource?: 'local' | 'remote' | 'cloud';
 }
 
 export interface NotificationSettings {

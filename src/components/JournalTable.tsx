@@ -5,11 +5,12 @@ import {
   CheckCircle2,
   Clock,
   Edit2,
-  Filter,
   Search,
   Trash2,
   Check,
   X,
+  LayoutGrid,
+  Table as TableIcon,
 } from 'lucide-react';
 import { JournalEntry, JournalStatus } from '../types/journal';
 import confetti from 'canvas-confetti';
@@ -75,8 +76,8 @@ export const JournalTable: React.FC<JournalTableProps> = ({
     onToggleStatus(entry.id);
     if (entry.status === 'belum_tuntas') {
       confetti({
-        particleCount: 40,
-        spread: 60,
+        particleCount: 35,
+        spread: 50,
         origin: { y: 0.7 },
       });
     }
@@ -84,100 +85,80 @@ export const JournalTable: React.FC<JournalTableProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Metric Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* Metric Stats Cards (Compact 2x2 grid for mobile) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {/* Total Target */}
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Total Target</span>
-            <span className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-              <Calendar className="w-4 h-4" />
-            </span>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+        <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400 block">Total Target</span>
+          <div className="mt-1 flex items-baseline gap-1.5">
+            <span className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tabular-nums">
               {totalCount}
             </span>
-            <span className="text-xs text-slate-400">kegiatan</span>
+            <span className="text-[11px] text-slate-400">kegiatan</span>
           </div>
         </div>
 
         {/* Tuntas */}
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Tuntas</span>
-            <span className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 className="w-4 h-4" />
-            </span>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+        <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+          <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 block">Tuntas</span>
+          <div className="mt-1 flex items-baseline gap-1.5">
+            <span className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
               {tuntasCount}
             </span>
-            <span className="text-xs text-emerald-600/80 font-medium">tercapai</span>
+            <span className="text-[11px] text-emerald-600/80">selesai</span>
           </div>
         </div>
 
         {/* Belum Tuntas */}
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-amber-600 dark:text-amber-400">Belum Tuntas</span>
-            <span className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400">
-              <Clock className="w-4 h-4" />
-            </span>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold text-amber-600 dark:text-amber-400">
+        <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+          <span className="text-xs font-medium text-amber-600 dark:text-amber-400 block">Belum Tuntas</span>
+          <div className="mt-1 flex items-baseline gap-1.5">
+            <span className="text-2xl sm:text-3xl font-bold text-amber-600 dark:text-amber-400 tabular-nums">
               {belumTuntasCount}
             </span>
-            <span className="text-xs text-amber-600/80 font-medium">dalam proses</span>
+            <span className="text-[11px] text-amber-600/80">proses</span>
           </div>
         </div>
 
-        {/* Progress Bar & Rate */}
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+        {/* Capaian */}
+        <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-sky-600 dark:text-sky-400">Capaian Kinerja</span>
-            <span className="text-xs font-bold text-sky-600 dark:text-sky-400">{percentage}%</span>
+            <span className="text-xs font-medium text-sky-600 dark:text-sky-400">Capaian</span>
+            <span className="text-xs font-bold text-sky-600 dark:text-sky-400 tabular-nums">{percentage}%</span>
           </div>
-          <div className="mt-3">
-            <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+          <div className="mt-2.5">
+            <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
               <div
-                className="bg-gradient-to-r from-sky-500 to-emerald-500 h-2.5 rounded-full transition-all duration-500"
+                className="bg-gradient-to-r from-sky-500 to-emerald-500 h-2 rounded-full transition-all duration-500"
                 style={{ width: `${percentage}%` }}
               />
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
-              {percentage === 100 && totalCount > 0
-                ? 'Semua target tuntas!'
-                : `${belumTuntasCount} target perlu diselesaikan`}
-            </p>
           </div>
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      {/* Filter and Search Bar (Touch-friendly stacked on mobile) */}
+      <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
         {/* Search */}
         <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5 pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari target kegiatan, hari/tanggal, catatan..."
-            className="w-full pl-9 pr-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-hidden text-slate-900 dark:text-white"
+            placeholder="Cari target kegiatan..."
+            className="w-full h-11 pl-10 pr-3 text-base sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-hidden text-slate-900 dark:text-white"
           />
         </div>
 
-        {/* Status Filters */}
-        <div className="flex items-center gap-1.5">
+        {/* Status Filters (min 44px height for mobile fingers) */}
+        <div className="grid grid-cols-3 gap-1.5 sm:flex sm:items-center">
           <button
             onClick={() => setStatusFilter('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+            className={`min-h-[44px] px-3 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
               statusFilter === 'all'
-                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
             }`}
           >
             Semua ({totalCount})
@@ -185,10 +166,10 @@ export const JournalTable: React.FC<JournalTableProps> = ({
 
           <button
             onClick={() => setStatusFilter('tuntas')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+            className={`min-h-[44px] px-3 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
               statusFilter === 'tuntas'
-                ? 'bg-emerald-600 text-white'
-                : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
             }`}
           >
             Tuntas ({tuntasCount})
@@ -196,25 +177,155 @@ export const JournalTable: React.FC<JournalTableProps> = ({
 
           <button
             onClick={() => setStatusFilter('belum_tuntas')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+            className={`min-h-[44px] px-3 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
               statusFilter === 'belum_tuntas'
-                ? 'bg-amber-600 text-white'
-                : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 hover:bg-amber-100'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
             }`}
           >
-            Belum Tuntas ({belumTuntasCount})
+            Belum ({belumTuntasCount})
           </button>
         </div>
       </div>
 
-      {/* Main Journal Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden transition-colors">
+      {/* ------------------------------------------------------------- */}
+      {/* MOBILE CARD VIEW (Active on mobile screens < 768px)          */}
+      {/* ------------------------------------------------------------- */}
+      <div className="md:hidden space-y-3">
+        {filteredEntries.length === 0 ? (
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 text-center text-slate-500">
+            <AlertCircle className="w-8 h-8 mx-auto mb-2 text-slate-400 stroke-1" />
+            <p className="text-sm font-semibold">Belum ada target</p>
+            <p className="text-xs text-slate-400 mt-1">
+              {searchQuery ? 'Tidak ada yang cocok dengan pencarian.' : 'Isi formulir di atas untuk memulai.'}
+            </p>
+          </div>
+        ) : (
+          filteredEntries.map((entry, index) => {
+            const isEditing = editingId === entry.id;
+
+            return (
+              <div
+                key={entry.id}
+                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-xs space-y-3"
+              >
+                {/* Card Header: Date & Action Triggers */}
+                <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                  <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      {entry.dayName}, {entry.formattedDate}
+                    </span>
+                    {entry.category && (
+                      <>
+                        <span aria-hidden="true" className="text-slate-300">·</span>
+                        <span className="text-slate-500 dark:text-slate-400">{entry.category}</span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Actions (44x44px touch targets) */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => handleStartEdit(entry)}
+                      className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-500 hover:text-sky-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                      title="Edit target"
+                      aria-label="Edit kegiatan"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => onDeleteEntry(entry.id)}
+                      className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl transition-colors cursor-pointer"
+                      title="Hapus baris"
+                      aria-label="Hapus kegiatan"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Card Body: Target & Notes */}
+                {isEditing ? (
+                  <div className="space-y-2.5 pt-1">
+                    <textarea
+                      value={editTargetText}
+                      onChange={(e) => setEditTargetText(e.target.value)}
+                      rows={2}
+                      className="w-full p-2.5 text-base bg-slate-50 dark:bg-slate-800 border border-sky-400 rounded-xl focus:outline-hidden"
+                    />
+                    <input
+                      type="text"
+                      value={editNotesText}
+                      onChange={(e) => setEditNotesText(e.target.value)}
+                      placeholder="Catatan kendala / tindak lanjut"
+                      className="w-full h-11 px-3 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl"
+                    />
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <button
+                        onClick={() => handleSaveEdit(entry.id)}
+                        className="min-h-[44px] inline-flex items-center justify-center gap-1 bg-sky-600 text-white rounded-xl text-xs font-bold"
+                      >
+                        <Check className="w-4 h-4" /> Simpan
+                      </button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="min-h-[44px] inline-flex items-center justify-center gap-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold"
+                      >
+                        <X className="w-4 h-4" /> Batal
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <p className="text-slate-900 dark:text-white font-medium text-sm sm:text-base leading-relaxed whitespace-pre-wrap">
+                      {entry.target}
+                    </p>
+                    {entry.notes && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400 italic bg-slate-50 dark:bg-slate-800/40 p-2 rounded-xl border-l-2 border-sky-500">
+                        {entry.notes}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Card Footer: Full-Width Touch Status Toggle (>= 44px) */}
+                <button
+                  type="button"
+                  onClick={() => handleStatusClick(entry)}
+                  className={`w-full min-h-[48px] rounded-xl flex items-center justify-center gap-2 font-bold text-sm tracking-wide transition-all shadow-xs cursor-pointer ${
+                    entry.status === 'tuntas'
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                      : 'bg-amber-500 hover:bg-amber-600 text-white'
+                  }`}
+                >
+                  {entry.status === 'tuntas' ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Tuntas</span>
+                    </>
+                  ) : (
+                    <>
+                      <Clock className="w-4 h-4" />
+                      <span>Belum Tuntas (Ketuk untuk selesaikan)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* ------------------------------------------------------------- */}
+      {/* DESKTOP TABLE VIEW (Shown on desktop & wide tablets >= 768px)  */}
+      {/* ------------------------------------------------------------- */}
+      <div className="hidden md:block bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden transition-colors">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-sm">
             <thead>
               <tr className="bg-slate-50/80 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-semibold text-xs">
                 <th className="py-3 px-3 w-12 text-center">No</th>
-                <th className="py-3 px-4 w-36 sm:w-44">Hari / Tgl</th>
+                <th className="py-3 px-4 w-40">Hari / Tgl</th>
                 <th className="py-3 px-4">Target / Kegiatan</th>
                 <th className="py-3 px-4 w-40 text-center">Keterangan</th>
                 <th className="py-3 px-3 w-20 text-center">Aksi</th>
@@ -226,11 +337,6 @@ export const JournalTable: React.FC<JournalTableProps> = ({
                   <td colSpan={5} className="py-12 text-center text-slate-500 dark:text-slate-400">
                     <AlertCircle className="w-8 h-8 mx-auto mb-2 text-slate-400 stroke-1" />
                     <p className="text-sm font-medium">Belum ada jurnal kegiatan</p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      {searchQuery
-                        ? 'Tidak ada target yang cocok dengan filter pencarian.'
-                        : 'Mulai isi target kegiatan pertama Anda di formulir atas.'}
-                    </p>
                   </td>
                 </tr>
               ) : (
@@ -242,12 +348,10 @@ export const JournalTable: React.FC<JournalTableProps> = ({
                       key={entry.id}
                       className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors group"
                     >
-                      {/* No */}
                       <td className="py-3 px-3 text-center text-xs font-mono text-slate-400 font-medium align-top">
                         {index + 1}
                       </td>
 
-                      {/* Hari / Tgl */}
                       <td className="py-3 px-4 align-top">
                         <span className="font-semibold text-slate-900 dark:text-white block text-xs sm:text-sm">
                           {entry.dayName}
@@ -256,13 +360,12 @@ export const JournalTable: React.FC<JournalTableProps> = ({
                           {entry.formattedDate}
                         </span>
                         {entry.category && (
-                          <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                          <span className="block mt-0.5 text-[11px] text-slate-400">
                             {entry.category}
                           </span>
                         )}
                       </td>
 
-                      {/* Target / Kegiatan */}
                       <td className="py-3 px-4 align-top">
                         {isEditing ? (
                           <div className="space-y-2">
@@ -301,14 +404,13 @@ export const JournalTable: React.FC<JournalTableProps> = ({
                             </p>
                             {entry.notes && (
                               <p className="text-xs text-slate-500 dark:text-slate-400 italic mt-1 bg-slate-50 dark:bg-slate-800/40 p-1.5 rounded-lg border-l-2 border-sky-400">
-                                Ket: {entry.notes}
+                                {entry.notes}
                               </p>
                             )}
                           </div>
                         )}
                       </td>
 
-                      {/* Keterangan: 1-Click Interactive Status Toggle */}
                       <td className="py-3 px-4 text-center align-top">
                         <button
                           type="button"
@@ -318,7 +420,6 @@ export const JournalTable: React.FC<JournalTableProps> = ({
                               ? 'bg-emerald-100 hover:bg-emerald-200 text-emerald-800 dark:bg-emerald-950/80 dark:hover:bg-emerald-900/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
                               : 'bg-amber-100 hover:bg-amber-200 text-amber-800 dark:bg-amber-950/80 dark:hover:bg-amber-900/80 dark:text-amber-300 border border-amber-300 dark:border-amber-700'
                           }`}
-                          title="Klik untuk ubah status capaian langsung"
                         >
                           {entry.status === 'tuntas' ? (
                             <>
@@ -334,19 +435,18 @@ export const JournalTable: React.FC<JournalTableProps> = ({
                         </button>
                       </td>
 
-                      {/* Actions */}
                       <td className="py-3 px-3 text-center align-top">
-                        <div className="flex items-center justify-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => handleStartEdit(entry)}
-                            className="p-1.5 text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                            className="p-1.5 text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
                             title="Edit target"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => onDeleteEntry(entry.id)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors"
+                            className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors cursor-pointer"
                             title="Hapus baris"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -360,19 +460,6 @@ export const JournalTable: React.FC<JournalTableProps> = ({
             </tbody>
           </table>
         </div>
-      </div>
-
-      {/* Bottom Hint */}
-      <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-1 py-1 gap-2">
-        <p>
-          💡 Tip: Anda dapat mengklik tombol status <strong>"tuntas" / "belum tuntas"</strong> langsung di tabel kapan saja untuk memperbarui capaian.
-        </p>
-        <button
-          onClick={onOpenReportView}
-          className="text-sky-600 dark:text-sky-400 hover:underline font-semibold flex items-center gap-1"
-        >
-          Lihat Format Laporan Resmi & Export Word →
-        </button>
       </div>
     </div>
   );

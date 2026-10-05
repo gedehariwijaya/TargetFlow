@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="tf-grad-mask" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284C7" />
+      <stop offset="100%" stop-color="#4F46E5" />
+    </linearGradient>
+  </defs>
+
+  <!-- Full-bleed background for maskable compliance -->
+  <rect width="512" height="512" fill="url(#tf-grad-mask)" />
+
+  <!-- Target Rings inside safe 80% circle -->
+  <circle cx="256" cy="256" r="140" stroke="#FFFFFF" stroke-width="22" opacity="0.95" />
+  <circle cx="256" cy="256" r="84" stroke="#FFFFFF" stroke-width="22" opacity="0.95" />
+  <circle cx="256" cy="256" r="34" fill="#FFFFFF" />
+
+  <line x1="256" y1="80" x2="256" y2="102" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" opacity="0.8" />
+  <line x1="256" y1="410" x2="256" y2="432" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" opacity="0.8" />
+  <line x1="80" y1="256" x2="102" y2="256" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" opacity="0.8" />
+  <line x1="410" y1="256" x2="432" y2="256" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" opacity="0.8" />
+</svg>

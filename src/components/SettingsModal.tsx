@@ -9,8 +9,10 @@ import {
   Volume2,
   X,
   User,
+  Smartphone,
 } from 'lucide-react';
 import { NotificationSettings, SchoolSettings } from '../types/journal';
+import { PWAInstallButton } from './PWAInstallButton';
 import {
   playReminderSound,
   requestNotificationPermission,
@@ -156,6 +158,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* TAB 1: PENGINGAT HARIAN */}
           {activeSubTab === 'reminder' && (
             <div className="space-y-4">
+              {/* Install PWA Prompt */}
+              <PWAInstallButton variant="card" />
+
               <div className="p-4 bg-sky-50 dark:bg-sky-950/40 rounded-2xl border border-sky-200 dark:border-sky-800">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">

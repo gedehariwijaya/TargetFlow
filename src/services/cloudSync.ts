@@ -7,6 +7,14 @@ export interface CloudPayloadBundle {
   lastUpdated: string;
 }
 
+export async function hashPassword(password: string): Promise<string> {
+  const enc = new TextEncoder().encode(password + ':targetflow_salt');
+  const digest = await window.crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 export async function pushEncryptedDataToCloud(
   entries: JournalEntry[],
   settings: SchoolSettings,
@@ -82,6 +90,72 @@ export async function pullEncryptedDataFromCloud(
   return {
     bundle: decrypted,
     updatedAt: record.updatedAt,
+  };
+}
+
+export async function registerAccount(
+  email: string,
+  passphraseAsPassword: string,
+  syncId: string
+): Promise<{ success: boolean; email: string; syncId: string }> {
+  const passwordHash = await hashPassword(passphraseAsPassword);
+
+  const res = await fetch('/api/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email,
+      passwordHash,
+      syncId,
+    }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Gagal mendaftarkan akun');
+  }
+
+  return await res.json();
+}
+
+export async function loginAccount(
+  email: string,
+  passphraseAsPassword: string
+): Promise<{ success: boolean; email: string; syncId: string; bundle?: CloudPayloadBundle }> {
+  const passwordHash = await hashPassword(passphraseAsPassword);
+
+  const res = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email,
+      passwordHash,
+    }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Gagal masuk akun. Periksa email dan password Anda.');
+  }
+
+  const result = await res.json();
+
+  let bundle: CloudPayloadBundle | undefined = undefined;
+  if (result.vault) {
+    const payload: EncryptedPayload = {
+      ciphertext: result.vault.ciphertext,
+      iv: result.vault.iv,
+      salt: result.vault.salt,
+      version: result.vault.version,
+    };
+    bundle = await decryptData<CloudPayloadBundle>(payload, passphraseAsPassword);
+  }
+
+  return {
+    success: true,
+    email: result.email,
+    syncId: result.syncId,
+    bundle,
   };
 }
 

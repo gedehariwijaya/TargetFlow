@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="tf-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284C7" />
+      <stop offset="100%" stop-color="#4F46E5" />
+    </linearGradient>
+    <linearGradient id="tf-ring-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#E0F2FE" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#0284C7" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Background rounded squircle with vibrant brand gradient -->
+  <rect width="512" height="512" rx="128" fill="url(#tf-grad)" filter="url(#shadow)" />
+
+  <!-- Outer Target Ring -->
+  <circle cx="256" cy="256" r="160" stroke="url(#tf-ring-grad)" stroke-width="24" opacity="0.95" />
+
+  <!-- Middle Target Ring -->
+  <circle cx="256" cy="256" r="96" stroke="url(#tf-ring-grad)" stroke-width="24" opacity="0.95" />
+
+  <!-- Center Bullseye Dot -->
+  <circle cx="256" cy="256" r="40" fill="#FFFFFF" />
+
+  <!-- Subtle dynamic target accent ticks -->
+  <line x1="256" y1="56" x2="256" y2="80" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" opacity="0.8" />
+  <line x1="256" y1="432" x2="256" y2="456" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" opacity="0.8" />
+  <line x1="56" y1="256" x2="80" y2="256" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" opacity="0.8" />
+  <line x1="432" y1="256" x2="456" y2="256" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" opacity="0.8" />
+</svg>
