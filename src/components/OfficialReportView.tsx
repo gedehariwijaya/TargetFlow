@@ -10,7 +10,7 @@ import {
   FileSpreadsheet,
 } from 'lucide-react';
 import { JournalEntry, SchoolSettings } from '../types/journal';
-import { BaliProvinceLogo, SchoolLogo, ElectronicSignatureSeal } from './OfficialLogos';
+import { OfficialKopSuratSmansaka } from './OfficialLogos';
 import { generateWordDocument, downloadBlob } from '../services/wordExport';
 
 interface OfficialReportViewProps {
@@ -127,53 +127,8 @@ export const OfficialReportView: React.FC<OfficialReportViewProps> = ({
       {/* Official Document Sheet Preview (Contained in horizontal scroll area for mobile) */}
       <div className="overflow-x-auto w-full pb-4">
         <div className="min-w-[650px] sm:min-w-0 bg-white text-black p-6 sm:p-12 rounded-2xl shadow-md border border-slate-300 max-w-4xl mx-auto font-serif print:p-0 print:border-none print:shadow-none print:max-w-none print:min-w-0">
-        {/* 1. KOP SURAT (Letterhead) */}
-        <div className="relative pb-2 border-b-[3px] border-black mb-1">
-          {/* Dual Logos (Bali Province left, School Logo right) */}
-          <div className="flex items-center justify-between gap-4">
-            {/* Left: Bali Province Logo */}
-            <div className="shrink-0 flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24">
-              <BaliProvinceLogo className="w-18 h-18 sm:w-22 sm:h-22 drop-shadow-xs" />
-            </div>
-
-            {/* Center: Official Government & School Text */}
-            <div className="flex-1 text-center font-sans px-1">
-              {/* Balinese Script decorative banner representation */}
-              <div className="text-[11px] sm:text-xs tracking-widest text-slate-800 font-semibold mb-0.5 select-none opacity-85">
-                ᬧᬫᬾᬭᬶᬦ᭄ᬢᬄᬧ᭄ᬭᭀᬯᬶᬦ᭄ᬲᬶᬩᬮᬶ
-              </div>
-
-              <div className="text-xs sm:text-sm font-bold tracking-wider text-black uppercase leading-tight">
-                {settings.provinceName}
-              </div>
-              <div className="text-[11px] sm:text-xs font-bold tracking-wider text-black uppercase leading-tight">
-                {settings.serviceName}
-              </div>
-
-              <h1 className="text-base sm:text-xl font-black text-black tracking-wide uppercase mt-1 mb-1 font-serif">
-                {settings.schoolName}
-              </h1>
-
-              <p className="text-[10px] sm:text-[11px] leading-tight text-slate-800 italic">
-                {settings.address}
-              </p>
-              <p className="text-[10px] sm:text-[11px] leading-tight text-slate-800 mt-0.5">
-                Laman : <span className="text-blue-900 underline">{settings.website}</span>{' '}
-                E-Mail : <span className="text-blue-900 underline">{settings.email}</span>
-              </p>
-              <p className="text-[9px] sm:text-[10px] font-bold text-black mt-0.5 tracking-tight">
-                NPSN : {settings.npsn} &nbsp; NSS : {settings.nss} &nbsp; Telp : {settings.phone} &nbsp; Kode Pos : {settings.postalCode}
-              </p>
-            </div>
-
-            {/* Right: SMAN 1 Tejakula Emblem */}
-            <div className="shrink-0 flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24">
-              <SchoolLogo className="w-18 h-18 sm:w-22 sm:h-22 drop-shadow-xs" />
-            </div>
-          </div>
-        </div>
-        {/* Double divider bottom thin line */}
-        <div className="border-b border-black mb-5"></div>
+        {/* 1. KOP SURAT RESMI (Matched exactly to kop smansaka baru) */}
+        <OfficialKopSuratSmansaka />
 
         {/* 2. Format Title / Note (matching "*Contoh format jurnal") */}
         <div className="mb-3">
@@ -282,9 +237,9 @@ export const OfficialReportView: React.FC<OfficialReportViewProps> = ({
           </table>
         </div>
 
-        {/* 4. Electronic Signature Section (Bottom Right matching image) */}
-        <div className="flex justify-end pt-4">
-          <div className="w-80 text-left sm:text-left space-y-1">
+        {/* 4. Signature Section */}
+        <div className="flex justify-end pt-6">
+          <div className="w-72 text-left space-y-1">
             <p className="text-xs sm:text-sm text-black">
               {settings.place}, {settings.signDate || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
@@ -295,22 +250,15 @@ export const OfficialReportView: React.FC<OfficialReportViewProps> = ({
               {settings.signTitle2}
             </p>
 
-            {/* Official BSrE Electronic Seal */}
-            <div className="py-2">
-              <ElectronicSignatureSeal
-                principalName={settings.principalName}
-                nip={settings.principalNip}
-                date={settings.signDate}
-                place={settings.place}
-              />
-            </div>
+            {/* Ruang Tanda Tangan & Cap Sekolah */}
+            <div className="h-20 sm:h-24"></div>
 
             {/* Principal Name & NIP */}
             <div className="pt-1">
-              <p className="text-sm font-bold text-black font-sans">
+              <p className="text-sm font-bold text-black font-serif underline">
                 {settings.principalName}
               </p>
-              <p className="text-xs text-black font-sans">
+              <p className="text-xs text-black font-serif">
                 NIP. {settings.principalNip}
               </p>
             </div>

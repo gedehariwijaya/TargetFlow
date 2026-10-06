@@ -1,31 +1,20 @@
 /**
- * TargetFlow - Aplikasi Web Jurnal Harian & Target Kerja Terenkripsi Awan
+ * TargetFlow - Aplikasi Web Jurnal Harian & Target Kerja dengan Firebase Realtime
  * @license Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Calendar,
-  CheckCircle2,
-  Cloud,
-  FileCheck,
   FileText,
-  Laptop,
   Lock,
-  Plus,
   Radio,
-  RefreshCw,
   Settings,
-  ShieldCheck,
-  Smartphone,
-  Sparkles,
   Target,
   WifiOff,
 } from 'lucide-react';
 import {
   JournalEntry,
   SchoolSettings,
-  SyncConfig,
   NotificationSettings,
 } from './types/journal';
 import {
@@ -36,26 +25,22 @@ import { Header } from './components/Header';
 import { JournalForm } from './components/JournalForm';
 import { JournalTable } from './components/JournalTable';
 import { OfficialReportView } from './components/OfficialReportView';
-import { SyncModal } from './components/SyncModal';
 import { SettingsModal } from './components/SettingsModal';
 import { NotificationBanner } from './components/NotificationBanner';
-import { generateRandomSyncKey, encryptData, decryptData, EncryptedPayload } from './services/crypto';
 import {
-  pushEncryptedDataToCloud,
-  pullEncryptedDataFromCloud,
-  CloudPayloadBundle,
-} from './services/cloudSync';
+  subscribeJournalEntries,
+  saveJournalEntry,
+  updateJournalEntry,
+  deleteJournalEntry,
+  subscribeSchoolSettings,
+  saveSchoolSettings,
+} from './services/firebase';
 import {
   playReminderSound,
   sendBrowserNotification,
 } from './services/notifications';
-import { RealtimeSyncManager } from './services/realtimeSocket';
-import confetti from 'canvas-confetti';
 
 const STORAGE_KEYS = {
-  ENTRIES: 'targetflow_entries_v1',
-  SETTINGS: 'targetflow_settings_v1',
-  SYNC: 'targetflow_sync_v1',
   NOTIFS: 'targetflow_notifs_v1',
   DARK_MODE: 'targetflow_dark_v1',
 };
@@ -78,45 +63,10 @@ export default function App() {
     localStorage.setItem(STORAGE_KEYS.DARK_MODE, String(isDarkMode));
   }, [isDarkMode]);
 
-  // Main state
-  const [entries, setEntries] = useState<JournalEntry[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.ENTRIES);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error('Failed to load saved entries:', e);
-    }
-    return INITIAL_JOURNAL_ENTRIES;
-  });
-
-  const [settings, setSettings] = useState<SchoolSettings>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error('Failed to load saved settings:', e);
-    }
-    return DEFAULT_SCHOOL_SETTINGS;
-  });
-
-  const [syncConfig, setSyncConfig] = useState<SyncConfig>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.SYNC);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error('Failed to load saved sync config:', e);
-    }
-    return {
-      syncKey: generateRandomSyncKey(),
-      passphrase: 'targetflow-aman-2026',
-      autoSync: true,
-      lastSyncedAt: null,
-      syncStatus: 'idle',
-      deviceId: 'dev-' + Math.random().toString(36).slice(2, 9),
-      connectedDevices: 1,
-      realtimeStatus: 'connecting',
-    };
-  });
+  // Main state from Firebase Realtime
+  const [entries, setEntries] = useState<JournalEntry[]>(INITIAL_JOURNAL_ENTRIES);
+  const [settings, setSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
+  const [isFirebaseLoaded, setIsFirebaseLoaded] = useState(false);
 
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(() => {
     try {
@@ -132,45 +82,10 @@ export default function App() {
     };
   });
 
-  // Navigation tab & Modals
-  const [activeTab, setActiveTab] = useState<'journal' | 'report' | 'sync' | 'settings'>('journal');
-  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  // Navigation tab & Modals (Jurnal, Laporan, Pengaturan)
+  const [activeTab, setActiveTab] = useState<'journal' | 'report' | 'settings'>('journal');
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [realtimeNotification, setRealtimeNotification] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
-
-  // Real-time synchronization manager reference
-  const realtimeRef = useRef<RealtimeSyncManager | null>(null);
-  // Flag to guard against infinite loops from remote updates
-  const isApplyingRemoteMutation = useRef<boolean>(false);
-  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Save entries to localStorage (Optimistic UI)
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify(entries));
-    } catch (e) {
-      console.error('Error saving entries to local storage:', e);
-    }
-  }, [entries]);
-
-  // Save settings to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-    } catch (e) {
-      console.error('Error saving settings to local storage:', e);
-    }
-  }, [settings]);
-
-  // Save syncConfig to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.SYNC, JSON.stringify(syncConfig));
-    } catch (e) {
-      console.error('Error saving sync config to local storage:', e);
-    }
-  }, [syncConfig]);
 
   // Save notificationSettings to localStorage
   useEffect(() => {
@@ -181,155 +96,48 @@ export default function App() {
     }
   }, [notificationSettings]);
 
-  // Cloud HTTP Sync Handler
-  const handlePushToCloud = useCallback(async () => {
-    if (!syncConfig.syncKey || !syncConfig.passphrase) return;
-
-    setSyncConfig((prev) => ({ ...prev, syncStatus: 'syncing' }));
-    try {
-      const result = await pushEncryptedDataToCloud(
-        entries,
-        settings,
-        syncConfig.syncKey,
-        syncConfig.passphrase,
-        syncConfig.deviceId
-      );
-
-      setSyncConfig((prev) => ({
-        ...prev,
-        syncStatus: 'synced',
-        lastSyncedAt: result.updatedAt,
-      }));
-    } catch (err) {
-      console.warn('Sync error:', err);
-      setSyncConfig((prev) => ({
-        ...prev,
-        syncStatus: 'error',
-        errorMessage: err instanceof Error ? err.message : String(err),
-      }));
-      throw err;
-    }
-  }, [entries, settings, syncConfig.syncKey, syncConfig.passphrase, syncConfig.deviceId]);
-
-  // Broadcast Real-Time Mutation via WebSocket
-  const broadcastRealtimeMutation = useCallback(
-    async (updatedEntries: JournalEntry[], updatedSettings: SchoolSettings) => {
-      if (!syncConfig.autoSync || !syncConfig.passphrase) return;
-
-      try {
-        const bundle: CloudPayloadBundle = {
-          entries: updatedEntries,
-          settings: updatedSettings,
-          lastUpdated: new Date().toISOString(),
-        };
-
-        const encrypted = await encryptData(bundle, syncConfig.passphrase);
-
-        if (realtimeRef.current) {
-          const sent = realtimeRef.current.pushMutation(encrypted, bundle.lastUpdated);
-          if (sent) {
-            setSyncConfig((prev) => ({
-              ...prev,
-              syncStatus: 'synced',
-              lastSyncedAt: bundle.lastUpdated,
-            }));
-          }
-        }
-      } catch (err) {
-        console.warn('Real-time push failed:', err);
-      }
-    },
-    [syncConfig.autoSync, syncConfig.passphrase]
-  );
-
-  // Initialize Real-time WebSocket listener
+  // -------------------------------------------------------------
+  // Firebase Real-Time Synchronization (Zero manual sync needed)
+  // -------------------------------------------------------------
   useEffect(() => {
-    const manager = new RealtimeSyncManager(syncConfig.syncKey, syncConfig.deviceId);
-    realtimeRef.current = manager;
+    let isInitialFetch = true;
 
-    manager.onStatusChangeCallback = (status) => {
-      setSyncConfig((prev) => ({ ...prev, realtimeStatus: status }));
-    };
-
-    manager.onPresenceChangeCallback = (count) => {
-      setSyncConfig((prev) => ({ ...prev, connectedDevices: count }));
-    };
-
-    // Remote mutation callback: received when another device mutates data
-    manager.onRemoteMutationCallback = async (payload, fromDeviceId, updatedAt) => {
-      if (fromDeviceId === syncConfig.deviceId) return; // ignore self
-      if (!syncConfig.passphrase) return;
-
-      try {
-        const decrypted = await decryptData<CloudPayloadBundle>(payload, syncConfig.passphrase);
-        if (decrypted && decrypted.entries) {
-          isApplyingRemoteMutation.current = true;
-          setEntries(decrypted.entries);
-          if (decrypted.settings) {
-            setSettings(decrypted.settings);
-          }
-          setSyncConfig((prev) => ({
-            ...prev,
-            lastSyncedAt: updatedAt,
-            syncStatus: 'synced',
-          }));
-
-          // Notify user visually
-          setRealtimeNotification('Data jurnal & target diperbarui otomatis secara real-time dari perangkat lain.');
-          setTimeout(() => setRealtimeNotification(null), 4000);
+    // 1. Subscribe to journal entries collection
+    const unsubscribeEntries = subscribeJournalEntries(
+      (realtimeEntries) => {
+        if (realtimeEntries.length === 0 && isInitialFetch) {
+          // Seed default entries into Firestore if empty
+          INITIAL_JOURNAL_ENTRIES.forEach((entry) => {
+            saveJournalEntry(entry).catch(console.error);
+          });
+        } else {
+          setEntries(realtimeEntries);
         }
-      } catch (err) {
-        console.warn('Failed to decrypt remote mutation:', err);
+        setIsFirebaseLoaded(true);
+        isInitialFetch = false;
+      },
+      (error) => {
+        console.warn('Firebase sync offline or loading:', error);
       }
-    };
+    );
 
-    manager.connect();
+    // 2. Subscribe to school settings document
+    const unsubscribeSettings = subscribeSchoolSettings((realtimeSettings) => {
+      if (realtimeSettings && realtimeSettings.schoolName) {
+        setSettings(realtimeSettings);
+      }
+    });
 
     return () => {
-      manager.disconnect();
+      unsubscribeEntries();
+      unsubscribeSettings();
     };
-  }, [syncConfig.syncKey, syncConfig.deviceId, syncConfig.passphrase]);
-
-  // Auto-sync whenever entries or settings change locally (debounced)
-  useEffect(() => {
-    // If this update was triggered by a remote mutation, don't echo back!
-    if (isApplyingRemoteMutation.current) {
-      isApplyingRemoteMutation.current = false;
-      return;
-    }
-
-    if (!syncConfig.autoSync) return;
-
-    // Immediately push via WebSocket for instantaneous sync on other devices
-    broadcastRealtimeMutation(entries, settings).catch(() => {});
-
-    // Also debounced push via HTTP REST for persistence
-    if (syncTimeoutRef.current) {
-      clearTimeout(syncTimeoutRef.current);
-    }
-    syncTimeoutRef.current = setTimeout(() => {
-      handlePushToCloud().catch(() => {});
-    }, 1500);
-
-    return () => {
-      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
-    };
-  }, [entries, settings, syncConfig.autoSync, broadcastRealtimeMutation, handlePushToCloud]);
+  }, []);
 
   // Online / Offline listeners
   useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      if (realtimeRef.current) {
-        realtimeRef.current.connect();
-      }
-      handlePushToCloud().catch(() => {});
-    };
-
-    const handleOffline = () => {
-      setIsOnline(false);
-      setSyncConfig((prev) => ({ ...prev, syncStatus: 'offline' }));
-    };
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -338,63 +146,7 @@ export default function App() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [handlePushToCloud]);
-
-  // Pull from cloud on connecting other device
-  const handlePullFromCloud = async (customKey: string, customPass: string) => {
-    setSyncConfig((prev) => ({ ...prev, syncStatus: 'syncing' }));
-    try {
-      const { bundle, updatedAt } = await pullEncryptedDataFromCloud(customKey, customPass);
-      isApplyingRemoteMutation.current = true;
-      if (bundle.entries) {
-        setEntries(bundle.entries);
-      }
-      if (bundle.settings) {
-        setSettings(bundle.settings);
-      }
-      setSyncConfig((prev) => ({
-        ...prev,
-        syncKey: customKey,
-        passphrase: customPass,
-        syncStatus: 'synced',
-        lastSyncedAt: updatedAt,
-      }));
-
-      // Reconnect realtime WebSocket to new room
-      if (realtimeRef.current) {
-        realtimeRef.current.updateCredentials(customKey, syncConfig.deviceId);
-      }
-    } catch (err) {
-      setSyncConfig((prev) => ({ ...prev, syncStatus: 'error' }));
-      throw err;
-    }
-  };
-
-  // Account Login Success Handler
-  const handleAccountLoginSuccess = (
-    email: string,
-    syncId: string,
-    passphrase: string,
-    bundle?: CloudPayloadBundle
-  ) => {
-    isApplyingRemoteMutation.current = true;
-    if (bundle) {
-      if (bundle.entries) setEntries(bundle.entries);
-      if (bundle.settings) setSettings(bundle.settings);
-    }
-    setSyncConfig((prev) => ({
-      ...prev,
-      userEmail: email,
-      syncKey: syncId,
-      passphrase,
-      syncStatus: 'synced',
-      lastSyncedAt: bundle ? bundle.lastUpdated : prev.lastSyncedAt,
-    }));
-
-    if (realtimeRef.current) {
-      realtimeRef.current.updateCredentials(syncId, syncConfig.deviceId);
-    }
-  };
+  }, []);
 
   // Daily Reminder Timer Check
   useEffect(() => {
@@ -411,7 +163,6 @@ export default function App() {
         currentTimeStr === notificationSettings.time &&
         notificationSettings.lastNotifiedDate !== todayISO
       ) {
-        // Trigger notification
         playReminderSound();
         sendBrowserNotification('Pengingat Target Harian TargetFlow', {
           body: 'Waktunya memeriksa target kerja Anda hari ini. Pastikan capaian tuntas tercatat!',
@@ -422,20 +173,15 @@ export default function App() {
           lastNotifiedDate: todayISO,
         }));
       }
-    }, 30000); // Check every 30s
+    }, 30000);
 
     return () => clearInterval(interval);
   }, [notificationSettings]);
 
-  // Initial cloud check or silent sync on mount
-  useEffect(() => {
-    if (!syncConfig.lastSyncedAt && syncConfig.autoSync) {
-      handlePushToCloud().catch(() => {});
-    }
-  }, []);
-
-  // Journal CRUD operations (Optimistic UI)
-  const handleAddEntry = (newEntry: Omit<JournalEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
+  // -------------------------------------------------------------
+  // Real-time CRUD Operations (Instantly reflected on all devices)
+  // -------------------------------------------------------------
+  const handleAddEntry = async (newEntry: Omit<JournalEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
     const timestamp = new Date().toISOString();
     const entryWithId: JournalEntry = {
       ...newEntry,
@@ -444,42 +190,72 @@ export default function App() {
       updatedAt: timestamp,
     };
 
+    // Optimistically update local view immediately
     setEntries((prev) => [entryWithId, ...prev]);
+
+    // Save directly to Firebase Firestore
+    try {
+      await saveJournalEntry(entryWithId);
+    } catch (err) {
+      console.error('Failed to save to Firebase:', err);
+    }
   };
 
-  const handleToggleStatus = (id: string) => {
+  const handleToggleStatus = async (id: string) => {
+    const targetEntry = entries.find((e) => e.id === id);
+    if (!targetEntry) return;
+
+    const nextStatus = targetEntry.status === 'tuntas' ? 'belum_tuntas' : 'tuntas';
+    const updatedAt = new Date().toISOString();
+
+    // Optimistic local update
     setEntries((prev) =>
-      prev.map((entry) => {
-        if (entry.id === id) {
-          const nextStatus = entry.status === 'tuntas' ? 'belum_tuntas' : 'tuntas';
-          return {
-            ...entry,
-            status: nextStatus,
-            updatedAt: new Date().toISOString(),
-          };
-        }
-        return entry;
-      })
+      prev.map((e) => (e.id === id ? { ...e, status: nextStatus, updatedAt } : e))
     );
+
+    // Save directly to Firebase Firestore
+    try {
+      await updateJournalEntry(id, { status: nextStatus, updatedAt });
+    } catch (err) {
+      console.error('Failed to update status in Firebase:', err);
+    }
   };
 
-  const handleDeleteEntry = (id: string) => {
+  const handleDeleteEntry = async (id: string) => {
+    // Optimistic local update
     setEntries((prev) => prev.filter((entry) => entry.id !== id));
+
+    // Delete in Firebase Firestore
+    try {
+      await deleteJournalEntry(id);
+    } catch (err) {
+      console.error('Failed to delete in Firebase:', err);
+    }
   };
 
-  const handleUpdateEntry = (id: string, updated: Partial<JournalEntry>) => {
+  const handleUpdateEntry = async (id: string, updated: Partial<JournalEntry>) => {
+    const updatedAt = new Date().toISOString();
+
+    // Optimistic local update
     setEntries((prev) =>
-      prev.map((entry) => {
-        if (entry.id === id) {
-          return {
-            ...entry,
-            ...updated,
-            updatedAt: new Date().toISOString(),
-          };
-        }
-        return entry;
-      })
+      prev.map((e) => (e.id === id ? { ...e, ...updated, updatedAt } : e))
     );
+
+    // Update in Firebase Firestore
+    try {
+      await updateJournalEntry(id, { ...updated, updatedAt });
+    } catch (err) {
+      console.error('Failed to update in Firebase:', err);
+    }
+  };
+
+  const handleSaveSettings = async (newSettings: SchoolSettings) => {
+    setSettings(newSettings);
+    try {
+      await saveSchoolSettings(newSettings);
+    } catch (err) {
+      console.error('Failed to save settings in Firebase:', err);
+    }
   };
 
   return (
@@ -488,38 +264,22 @@ export default function App() {
       <Header
         activeTab={activeTab}
         setActiveTab={(tab) => {
-          if (tab === 'sync') {
-            setIsSyncModalOpen(true);
-          } else if (tab === 'settings') {
+          if (tab === 'settings') {
             setIsSettingsModalOpen(true);
           } else {
             setActiveTab(tab);
           }
         }}
-        syncConfig={syncConfig}
-        onManualSync={() => setIsSyncModalOpen(true)}
         isDarkMode={isDarkMode}
         onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+        isFirebaseConnected={isFirebaseLoaded}
       />
-
-      {/* Floating Real-Time Synchronization Toast */}
-      {realtimeNotification && (
-        <div className="fixed top-20 right-4 z-40 max-w-sm bg-emerald-600 text-white p-3.5 rounded-2xl shadow-xl border border-emerald-400 flex items-center gap-3 text-xs animate-in slide-in-from-top-4 duration-300">
-          <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-            <Radio className="w-4 h-4 animate-pulse" />
-          </div>
-          <div className="flex-1">
-            <span className="font-bold block">Sinkronisasi Real-Time</span>
-            <span>{realtimeNotification}</span>
-          </div>
-        </div>
-      )}
 
       {/* Offline Banner */}
       {!isOnline && (
         <div className="bg-amber-600 text-white text-xs px-4 py-2 flex items-center justify-center gap-2 font-medium">
           <WifiOff className="w-4 h-4" />
-          <span>Mode Offline: Anda tetap dapat menambah/mengubah jurnal secara lokal. Data otomatis tersinkronisasi saat terhubung internet kembali.</span>
+          <span>Mode Offline: Data tersimpan secara lokal di perangkat dan otomatis terhubung ke Firebase saat online.</span>
         </div>
       )}
 
@@ -557,7 +317,7 @@ export default function App() {
         )}
       </main>
 
-      {/* Footer (Simplified for mobile) */}
+      {/* Footer (Simplified & clean) */}
       <footer className="border-t border-slate-200 dark:border-slate-800 py-4 sm:py-6 text-xs text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-slate-900/50 print:hidden hidden sm:block">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -566,32 +326,23 @@ export default function App() {
             </span>
             <span>•</span>
             <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-              <Lock className="w-3.5 h-3.5" /> Enkripsi Klien (AES-256)
-            </span>
-            <span>•</span>
-            <span className="flex items-center gap-1 text-sky-600 dark:text-sky-400">
-              <Radio className="w-3 h-3" /> Real-Time Aktif
+              <Radio className="w-3.5 h-3.5 animate-pulse" /> Firebase Realtime Terhubung
             </span>
           </div>
 
           <div className="flex items-center gap-3 text-[11px]">
             <button
-              onClick={() => setIsSyncModalOpen(true)}
-              className="hover:text-sky-600 dark:hover:text-sky-400 transition-colors flex items-center gap-1 cursor-pointer"
+              onClick={() => setIsSettingsModalOpen(true)}
+              className="hover:text-sky-600 dark:hover:text-sky-400 transition-colors cursor-pointer"
             >
-              <Cloud className="w-3.5 h-3.5" />
-              <span>
-                {syncConfig.userEmail
-                  ? `Akun: ${syncConfig.userEmail}`
-                  : `Sync Key: ${syncConfig.syncKey}`}
-              </span>
+              Pengaturan Kop & Pengingat
             </button>
           </div>
         </div>
       </footer>
 
-      {/* Mobile Fixed Bottom Navigation Bar (Natural Thumb Zone) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 grid grid-cols-4 items-center h-16 px-1 shadow-lg pb-safe">
+      {/* Mobile Fixed Bottom Navigation Bar (Clean 3-Tab Thumb Zone) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 grid grid-cols-3 items-center h-16 px-2 shadow-lg pb-safe">
         <button
           onClick={() => setActiveTab('journal')}
           className={`min-h-[48px] flex flex-col items-center justify-center h-full gap-0.5 cursor-pointer transition-colors ${
@@ -602,7 +353,7 @@ export default function App() {
           aria-label="Menu Jurnal"
         >
           <Target className="w-5 h-5" />
-          <span className="text-[10px]">Jurnal</span>
+          <span className="text-[11px]">Jurnal</span>
         </button>
 
         <button
@@ -615,16 +366,7 @@ export default function App() {
           aria-label="Menu Format Laporan"
         >
           <FileText className="w-5 h-5" />
-          <span className="text-[10px]">Laporan</span>
-        </button>
-
-        <button
-          onClick={() => setIsSyncModalOpen(true)}
-          className="min-h-[48px] flex flex-col items-center justify-center h-full gap-0.5 cursor-pointer transition-colors text-slate-500 dark:text-slate-400 hover:text-sky-600"
-          aria-label="Menu Awan dan Sinkronisasi HP"
-        >
-          <Laptop className="w-5 h-5" />
-          <span className="text-[10px]">Awan</span>
+          <span className="text-[11px]">Laporan</span>
         </button>
 
         <button
@@ -633,27 +375,16 @@ export default function App() {
           aria-label="Menu Pengaturan Kop dan Pengingat"
         >
           <Settings className="w-5 h-5" />
-          <span className="text-[10px]">Pengaturan</span>
+          <span className="text-[11px]">Pengaturan</span>
         </button>
       </nav>
-
-      {/* Sync / Multi-Device Pairing Modal */}
-      <SyncModal
-        isOpen={isSyncModalOpen}
-        onClose={() => setIsSyncModalOpen(false)}
-        syncConfig={syncConfig}
-        onUpdateSyncConfig={(updated) => setSyncConfig((prev) => ({ ...prev, ...updated }))}
-        onTriggerSyncNow={handlePushToCloud}
-        onPullFromCloudNow={handlePullFromCloud}
-        onAccountLoginSuccess={handleAccountLoginSuccess}
-      />
 
       {/* Settings Modal (Kop Surat, NIP, Daily Reminder) */}
       <SettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
         settings={settings}
-        onSaveSettings={(newSettings) => setSettings(newSettings)}
+        onSaveSettings={handleSaveSettings}
         notificationSettings={notificationSettings}
         onSaveNotificationSettings={(newNotif) => setNotificationSettings(newNotif)}
       />

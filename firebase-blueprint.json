@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "JournalEntry": {
+      "title": "JournalEntry",
+      "description": "Daily work target and journal record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string" },
+        "dayName": { "type": "string" },
+        "formattedDate": { "type": "string" },
+        "target": { "type": "string" },
+        "status": { "type": "string", "enum": ["tuntas", "belum_tuntas"] },
+        "notes": { "type": "string" },
+        "category": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "date", "dayName", "formattedDate", "target", "status", "createdAt", "updatedAt"]
+    },
+    "SchoolSettings": {
+      "title": "SchoolSettings",
+      "description": "Official report letterhead and signer information",
+      "type": "object",
+      "properties": {
+        "provinceName": { "type": "string" },
+        "serviceName": { "type": "string" },
+        "schoolName": { "type": "string" },
+        "address": { "type": "string" },
+        "website": { "type": "string" },
+        "email": { "type": "string" },
+        "npsn": { "type": "string" },
+        "nss": { "type": "string" },
+        "phone": { "type": "string" },
+        "postalCode": { "type": "string" },
+        "reportTitle": { "type": "string" },
+        "reportNote": { "type": "string" },
+        "place": { "type": "string" },
+        "signDate": { "type": "string" },
+        "signTitle1": { "type": "string" },
+        "signTitle2": { "type": "string" },
+        "principalName": { "type": "string" },
+        "principalNip": { "type": "string" },
+        "teacherName": { "type": "string" },
+        "teacherNip": { "type": "string" },
+        "teacherRole": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/journal_entries/{entryId}": {
+      "schema": { "$ref": "#/entities/JournalEntry" },
+      "description": "Collection of daily work target journal records"
+    },
+    "/app_settings/{settingId}": {
+      "schema": { "$ref": "#/entities/SchoolSettings" },
+      "description": "Document holding letterhead and signature configuration"
+    }
+  }
+}

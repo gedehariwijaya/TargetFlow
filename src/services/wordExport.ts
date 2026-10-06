@@ -39,17 +39,39 @@ export async function generateWordDocument(
     right: 140,
   };
 
-  // 1. Kop Surat (Letterhead)
+  // 1. Kop Surat (Letterhead - Exact match to Kop SMANSAKA Baru)
   const kopParagraphs = [
     new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing: { after: 20 },
+      spacing: { after: 10 },
       children: [
         new TextRun({
-          text: settings.provinceName.toUpperCase(),
-          font: 'Arial',
-          size: 22, // 11pt
+          text: 'ᬧᬫᬾᬭᬶᬦ᭄ᬢᬄ ᬧ᭄ᬭᭀᬯᬶᬦ᭄ᬲᬶ ᬩᬮᬶ',
+          font: 'Times New Roman',
+          size: 20, // 10pt
+        }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 10 },
+      children: [
+        new TextRun({
+          text: 'PEMERINTAH PROVINSI BALI',
+          font: 'Times New Roman',
+          size: 24, // 12pt
           bold: true,
+        }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 10 },
+      children: [
+        new TextRun({
+          text: '᭚ ᬤᬶᬦᬲ᭄ ᬧᭂᬦ᭄ᬤᬶᬤᬶᬓᬦ᭄ ᬓᭂᬧᭂᬫᬸᬤᬵᬦ᭄ ᬤᬦ᭄ ᬒᬮᬄ ᬭᬵᬕ ᭚',
+          font: 'Times New Roman',
+          size: 18, // 9pt
         }),
       ],
     }),
@@ -58,10 +80,34 @@ export async function generateWordDocument(
       spacing: { after: 20 },
       children: [
         new TextRun({
-          text: settings.serviceName.toUpperCase(),
-          font: 'Arial',
-          size: 22, // 11pt
+          text: 'SMA NEGERI 1 TEJAKULA',
+          font: 'Times New Roman',
+          size: 30, // 15pt
           bold: true,
+        }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 10 },
+      children: [
+        new TextRun({
+          text: 'Jalan Singaraja-Amlapura Desa Tejakula Kecamatan Tejakula Kabupaten Buleleng Provinsi Bali',
+          font: 'Times New Roman',
+          size: 17, // 8.5pt
+          italics: true,
+        }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 10 },
+      children: [
+        new TextRun({
+          text: 'Laman : http://www.smanegerisatutejakula.sch.id   E-Mail : smanegeri1tejakula@gmail.com',
+          font: 'Times New Roman',
+          size: 17, // 8.5pt
+          italics: true,
         }),
       ],
     }),
@@ -70,46 +116,10 @@ export async function generateWordDocument(
       spacing: { after: 40 },
       children: [
         new TextRun({
-          text: settings.schoolName.toUpperCase(),
-          font: 'Arial',
-          size: 28, // 14pt
-          bold: true,
-        }),
-      ],
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 20 },
-      children: [
-        new TextRun({
-          text: settings.address,
-          font: 'Arial',
+          text: 'NPSN : 50100282   NSS : 30.1.22.01.00.037   Telp : (0362)3304516   Kode Post : 81173',
+          font: 'Times New Roman',
           size: 16, // 8pt
           italics: true,
-        }),
-      ],
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 20 },
-      children: [
-        new TextRun({
-          text: `Laman : ${settings.website}   E-Mail : ${settings.email}`,
-          font: 'Arial',
-          size: 16, // 8pt
-          italics: true,
-        }),
-      ],
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 80 },
-      children: [
-        new TextRun({
-          text: `NPSN : ${settings.npsn}  NSS : ${settings.nss}  Telp : ${settings.phone}  Kode Pos : ${settings.postalCode}`,
-          font: 'Arial',
-          size: 16, // 8pt
-          bold: true,
         }),
       ],
     }),
@@ -391,7 +401,7 @@ export async function generateWordDocument(
       ],
     }),
     new Paragraph({
-      spacing: { after: 200 },
+      spacing: { after: 20 },
       alignment: AlignmentType.RIGHT,
       children: [
         new TextRun({
@@ -401,22 +411,9 @@ export async function generateWordDocument(
         }),
       ],
     }),
-    // Electronic signature indicator
+    // Blank space for official pen signature & school seal
     new Paragraph({
-      spacing: { after: 200 },
-      alignment: AlignmentType.RIGHT,
-      children: [
-        new TextRun({
-          text: '[ Ditandatangani Secara Elektronik / BSrE ]',
-          font: 'Times New Roman',
-          size: 18,
-          italics: true,
-          color: '1E40AF',
-        }),
-      ],
-    }),
-    new Paragraph({
-      spacing: { after: 20 },
+      spacing: { before: 800, after: 20 },
       alignment: AlignmentType.RIGHT,
       children: [
         new TextRun({
@@ -424,6 +421,7 @@ export async function generateWordDocument(
           font: 'Times New Roman',
           size: 22,
           bold: true,
+          underline: {},
         }),
       ],
     }),
