@@ -44,8 +44,8 @@ import {
 const STORAGE_KEYS = {
   NOTIFS: 'targetflow_notifs_v1',
   DARK_MODE: 'targetflow_dark_v1',
-  ENTRIES_CACHE: 'targetflow_entries_v3',
-  SETTINGS_CACHE: 'targetflow_settings_v3',
+  ENTRIES_CACHE: 'targetflow_entries_v4',
+  SETTINGS_CACHE: 'targetflow_settings_v4',
 };
 
 export default function App() {
@@ -66,18 +66,18 @@ export default function App() {
     localStorage.setItem(STORAGE_KEYS.DARK_MODE, String(isDarkMode));
   }, [isDarkMode]);
 
-  // Main state with offline cache first to avoid reverting to old static dummy data
+  // Main state: Starts empty and syncs live with Firestore on any device
   const [entries, setEntries] = useState<JournalEntry[]>(() => {
     try {
       const cached = localStorage.getItem(STORAGE_KEYS.ENTRIES_CACHE);
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {
       console.warn('Failed loading cached entries:', e);
     }
-    return INITIAL_JOURNAL_ENTRIES;
+    return [];
   });
 
   const [settings, setSettings] = useState<SchoolSettings>(() => {
@@ -123,41 +123,17 @@ export default function App() {
   }, [notificationSettings]);
 
   // -------------------------------------------------------------
-  // Firebase Real-Time Synchronization
+  // Firebase Real-Time Synchronization Across All Devices
   // -------------------------------------------------------------
   useEffect(() => {
-    let isInitialFetch = true;
-
-    // 1. Subscribe to journal entries collection
+    // 1. Subscribe to journal entries collection (live multi-device sync)
     const unsubscribeEntries = subscribeJournalEntries(
       (realtimeEntries) => {
-        if (realtimeEntries.length > 0) {
-          setEntries(realtimeEntries);
-          try {
-            localStorage.setItem(STORAGE_KEYS.ENTRIES_CACHE, JSON.stringify(realtimeEntries));
-          } catch {}
-        } else if (isInitialFetch) {
-          // If Firestore is completely empty on first install, seed once
-          const hasSeeded = localStorage.getItem('targetflow_seeded_v3');
-          if (!hasSeeded) {
-            localStorage.setItem('targetflow_seeded_v3', 'true');
-            INITIAL_JOURNAL_ENTRIES.forEach((entry) => {
-              saveJournalEntry(entry).catch(console.error);
-            });
-          } else {
-            setEntries([]);
-            try {
-              localStorage.setItem(STORAGE_KEYS.ENTRIES_CACHE, JSON.stringify([]));
-            } catch {}
-          }
-        } else {
-          setEntries([]);
-          try {
-            localStorage.setItem(STORAGE_KEYS.ENTRIES_CACHE, JSON.stringify([]));
-          } catch {}
-        }
+        setEntries(realtimeEntries);
+        try {
+          localStorage.setItem(STORAGE_KEYS.ENTRIES_CACHE, JSON.stringify(realtimeEntries));
+        } catch {}
         setIsFirebaseLoaded(true);
-        isInitialFetch = false;
       },
       (error) => {
         console.warn('Firebase sync offline or loading:', error);

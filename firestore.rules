@@ -10,10 +10,10 @@ service cloud.firestore {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
-    // Collection: journal_entries
+    // Collection: journal_entries - allow any device to read and write seamlessly
     match /journal_entries/{entryId} {
       allow read: if true;
-      allow create, update, delete: if isValidId(entryId);
+      allow write: if isValidId(entryId);
     }
 
     // Collection: app_settings (School Kop & Signer info)
