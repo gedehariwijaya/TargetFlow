@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import {
   JournalEntry,
+  JournalStatus,
   SchoolSettings,
   NotificationSettings,
 } from './types/journal';
@@ -43,6 +44,8 @@ import {
 const STORAGE_KEYS = {
   NOTIFS: 'targetflow_notifs_v1',
   DARK_MODE: 'targetflow_dark_v1',
+  ENTRIES_CACHE: 'targetflow_entries_v3',
+  SETTINGS_CACHE: 'targetflow_settings_v3',
 };
 
 export default function App() {
@@ -63,9 +66,32 @@ export default function App() {
     localStorage.setItem(STORAGE_KEYS.DARK_MODE, String(isDarkMode));
   }, [isDarkMode]);
 
-  // Main state from Firebase Realtime
-  const [entries, setEntries] = useState<JournalEntry[]>(INITIAL_JOURNAL_ENTRIES);
-  const [settings, setSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
+  // Main state with offline cache first to avoid reverting to old static dummy data
+  const [entries, setEntries] = useState<JournalEntry[]>(() => {
+    try {
+      const cached = localStorage.getItem(STORAGE_KEYS.ENTRIES_CACHE);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Failed loading cached entries:', e);
+    }
+    return INITIAL_JOURNAL_ENTRIES;
+  });
+
+  const [settings, setSettings] = useState<SchoolSettings>(() => {
+    try {
+      const cached = localStorage.getItem(STORAGE_KEYS.SETTINGS_CACHE);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.schoolName) return parsed;
+      }
+    } catch (e) {
+      console.warn('Failed loading cached settings:', e);
+    }
+    return DEFAULT_SCHOOL_SETTINGS;
+  });
   const [isFirebaseLoaded, setIsFirebaseLoaded] = useState(false);
 
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(() => {
@@ -97,7 +123,7 @@ export default function App() {
   }, [notificationSettings]);
 
   // -------------------------------------------------------------
-  // Firebase Real-Time Synchronization (Zero manual sync needed)
+  // Firebase Real-Time Synchronization
   // -------------------------------------------------------------
   useEffect(() => {
     let isInitialFetch = true;
@@ -105,13 +131,30 @@ export default function App() {
     // 1. Subscribe to journal entries collection
     const unsubscribeEntries = subscribeJournalEntries(
       (realtimeEntries) => {
-        if (realtimeEntries.length === 0 && isInitialFetch) {
-          // Seed default entries into Firestore if empty
-          INITIAL_JOURNAL_ENTRIES.forEach((entry) => {
-            saveJournalEntry(entry).catch(console.error);
-          });
-        } else {
+        if (realtimeEntries.length > 0) {
           setEntries(realtimeEntries);
+          try {
+            localStorage.setItem(STORAGE_KEYS.ENTRIES_CACHE, JSON.stringify(realtimeEntries));
+          } catch {}
+        } else if (isInitialFetch) {
+          // If Firestore is completely empty on first install, seed once
+          const hasSeeded = localStorage.getItem('targetflow_seeded_v3');
+          if (!hasSeeded) {
+            localStorage.setItem('targetflow_seeded_v3', 'true');
+            INITIAL_JOURNAL_ENTRIES.forEach((entry) => {
+              saveJournalEntry(entry).catch(console.error);
+            });
+          } else {
+            setEntries([]);
+            try {
+              localStorage.setItem(STORAGE_KEYS.ENTRIES_CACHE, JSON.stringify([]));
+            } catch {}
+          }
+        } else {
+          setEntries([]);
+          try {
+            localStorage.setItem(STORAGE_KEYS.ENTRIES_CACHE, JSON.stringify([]));
+          } catch {}
         }
         setIsFirebaseLoaded(true);
         isInitialFetch = false;
@@ -125,6 +168,9 @@ export default function App() {
     const unsubscribeSettings = subscribeSchoolSettings((realtimeSettings) => {
       if (realtimeSettings && realtimeSettings.schoolName) {
         setSettings(realtimeSettings);
+        try {
+          localStorage.setItem(STORAGE_KEYS.SETTINGS_CACHE, JSON.stringify(realtimeSettings));
+        } catch {}
       }
     });
 
@@ -183,15 +229,24 @@ export default function App() {
   // -------------------------------------------------------------
   const handleAddEntry = async (newEntry: Omit<JournalEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
     const timestamp = new Date().toISOString();
+    const cleanId = 'entry-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
     const entryWithId: JournalEntry = {
       ...newEntry,
-      id: 'entry-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      id: cleanId,
+      notes: newEntry.notes ? newEntry.notes.trim() : '',
+      category: newEntry.category || 'Pembelajaran',
       createdAt: timestamp,
       updatedAt: timestamp,
     };
 
-    // Optimistically update local view immediately
-    setEntries((prev) => [entryWithId, ...prev]);
+    // Optimistically update local view immediately & cache
+    setEntries((prev) => {
+      const updated = [entryWithId, ...prev];
+      try {
+        localStorage.setItem(STORAGE_KEYS.ENTRIES_CACHE, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
 
     // Save directly to Firebase Firestore
     try {
@@ -205,13 +260,17 @@ export default function App() {
     const targetEntry = entries.find((e) => e.id === id);
     if (!targetEntry) return;
 
-    const nextStatus = targetEntry.status === 'tuntas' ? 'belum_tuntas' : 'tuntas';
+    const nextStatus: JournalStatus = targetEntry.status === 'tuntas' ? 'belum_tuntas' : 'tuntas';
     const updatedAt = new Date().toISOString();
 
-    // Optimistic local update
-    setEntries((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, status: nextStatus, updatedAt } : e))
-    );
+    // Optimistic local update & cache
+    setEntries((prev) => {
+      const updated: JournalEntry[] = prev.map((e) => (e.id === id ? { ...e, status: nextStatus, updatedAt } : e));
+      try {
+        localStorage.setItem(STORAGE_KEYS.ENTRIES_CACHE, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
 
     // Save directly to Firebase Firestore
     try {
@@ -222,8 +281,14 @@ export default function App() {
   };
 
   const handleDeleteEntry = async (id: string) => {
-    // Optimistic local update
-    setEntries((prev) => prev.filter((entry) => entry.id !== id));
+    // Optimistic local update & cache
+    setEntries((prev) => {
+      const updated = prev.filter((entry) => entry.id !== id);
+      try {
+        localStorage.setItem(STORAGE_KEYS.ENTRIES_CACHE, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
 
     // Delete in Firebase Firestore
     try {
@@ -236,14 +301,31 @@ export default function App() {
   const handleUpdateEntry = async (id: string, updated: Partial<JournalEntry>) => {
     const updatedAt = new Date().toISOString();
 
-    // Optimistic local update
-    setEntries((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, ...updated, updatedAt } : e))
-    );
+    // Optimistic local update & cache
+    setEntries((prev) => {
+      const updatedList = prev.map((e) =>
+        e.id === id
+          ? {
+              ...e,
+              ...updated,
+              notes: updated.notes !== undefined ? (updated.notes || '') : (e.notes || ''),
+              updatedAt,
+            }
+          : e
+      );
+      try {
+        localStorage.setItem(STORAGE_KEYS.ENTRIES_CACHE, JSON.stringify(updatedList));
+      } catch {}
+      return updatedList;
+    });
 
     // Update in Firebase Firestore
     try {
-      await updateJournalEntry(id, { ...updated, updatedAt });
+      await updateJournalEntry(id, {
+        ...updated,
+        notes: updated.notes !== undefined ? (updated.notes || '') : undefined,
+        updatedAt,
+      });
     } catch (err) {
       console.error('Failed to update in Firebase:', err);
     }
@@ -251,6 +333,10 @@ export default function App() {
 
   const handleSaveSettings = async (newSettings: SchoolSettings) => {
     setSettings(newSettings);
+    try {
+      localStorage.setItem(STORAGE_KEYS.SETTINGS_CACHE, JSON.stringify(newSettings));
+    } catch {}
+
     try {
       await saveSchoolSettings(newSettings);
     } catch (err) {

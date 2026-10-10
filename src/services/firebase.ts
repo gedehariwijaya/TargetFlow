@@ -9,8 +9,6 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
-  query,
-  orderBy,
   Unsubscribe,
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
@@ -59,6 +57,17 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
+// Clean payload to prevent Firestore "Unsupported field value: undefined" error
+function sanitizePayload<T extends Record<string, any>>(obj: T): Record<string, any> {
+  const cleaned: Record<string, any> = {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (val !== undefined) {
+      cleaned[key] = val;
+    }
+  }
+  return cleaned;
+}
+
 // Connection check as required by SKILL.md
 export async function testConnection() {
   try {
@@ -86,19 +95,32 @@ export function subscribeJournalEntries(
   onError?: (err: Error) => void
 ): Unsubscribe {
   const entriesCol = collection(db, 'journal_entries');
-  const q = query(entriesCol, orderBy('date', 'desc'));
 
   return onSnapshot(
-    q,
+    entriesCol,
     (snapshot) => {
       const records: JournalEntry[] = [];
       snapshot.forEach((docSnap) => {
-        records.push(docSnap.data() as JournalEntry);
+        const data = docSnap.data() as JournalEntry;
+        records.push({
+          ...data,
+          id: docSnap.id,
+          category: data.category || 'Pembelajaran',
+          notes: data.notes || '',
+        });
       });
+
+      // Sort client-side by date descending, then createdAt descending
+      records.sort((a, b) => {
+        const dateComp = (b.date || '').localeCompare(a.date || '');
+        if (dateComp !== 0) return dateComp;
+        return (b.createdAt || '').localeCompare(a.createdAt || '');
+      });
+
       onData(records);
     },
     (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'journal_entries');
+      console.error('Firestore onSnapshot error:', error);
       if (onError) onError(error);
     }
   );
@@ -110,7 +132,19 @@ export function subscribeJournalEntries(
 export async function saveJournalEntry(entry: JournalEntry): Promise<void> {
   const path = `journal_entries/${entry.id}`;
   try {
-    await setDoc(doc(db, 'journal_entries', entry.id), entry);
+    const payload = sanitizePayload({
+      id: entry.id,
+      date: entry.date,
+      dayName: entry.dayName,
+      formattedDate: entry.formattedDate,
+      target: entry.target.trim(),
+      status: entry.status,
+      category: entry.category || 'Pembelajaran',
+      notes: entry.notes ? entry.notes.trim() : '',
+      createdAt: entry.createdAt || new Date().toISOString(),
+      updatedAt: entry.updatedAt || new Date().toISOString(),
+    });
+    await setDoc(doc(db, 'journal_entries', entry.id), payload);
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
@@ -122,7 +156,12 @@ export async function saveJournalEntry(entry: JournalEntry): Promise<void> {
 export async function updateJournalEntry(id: string, updates: Partial<JournalEntry>): Promise<void> {
   const path = `journal_entries/${id}`;
   try {
-    await updateDoc(doc(db, 'journal_entries', id), updates);
+    const payload = sanitizePayload({
+      ...updates,
+      notes: updates.notes !== undefined ? (updates.notes || '') : undefined,
+      updatedAt: updates.updatedAt || new Date().toISOString(),
+    });
+    await updateDoc(doc(db, 'journal_entries', id), payload);
   } catch (err) {
     handleFirestoreError(err, OperationType.UPDATE, path);
   }
@@ -155,7 +194,7 @@ export function subscribeSchoolSettings(
       }
     },
     (error) => {
-      handleFirestoreError(error, OperationType.GET, 'app_settings/school_settings');
+      console.error('Firestore settings onSnapshot error:', error);
     }
   );
 }
@@ -166,10 +205,11 @@ export function subscribeSchoolSettings(
 export async function saveSchoolSettings(settings: SchoolSettings): Promise<void> {
   const path = 'app_settings/school_settings';
   try {
-    await setDoc(doc(db, 'app_settings', 'school_settings'), {
+    const payload = sanitizePayload({
       ...settings,
       updatedAt: new Date().toISOString(),
     });
+    await setDoc(doc(db, 'app_settings', 'school_settings'), payload);
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }

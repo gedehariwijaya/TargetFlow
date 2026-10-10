@@ -39,7 +39,7 @@ export const JournalForm: React.FC<JournalFormProps> = ({ onAddEntry }) => {
       target: target.trim(),
       status,
       category,
-      notes: notes.trim() || undefined,
+      notes: notes.trim() || '',
     });
 
     if (status === 'tuntas') {

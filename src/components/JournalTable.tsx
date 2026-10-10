@@ -67,7 +67,7 @@ export const JournalTable: React.FC<JournalTableProps> = ({
     if (!editTargetText.trim()) return;
     onUpdateEntry(id, {
       target: editTargetText.trim(),
-      notes: editNotesText.trim() || undefined,
+      notes: editNotesText.trim() || '',
     });
     setEditingId(null);
   };
